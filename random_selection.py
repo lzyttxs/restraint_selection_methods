@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from scipy.io import loadmat
 from Bio.PDB.PDBParser import PDBParser
@@ -21,51 +22,52 @@ def get_distance(coord_1, coord_2):
     return np.sqrt(np.sum((coord_1-coord_2)*(coord_1-coord_2)))
 
 def get_Rg(coord_CA):
-    Rg = 0
     coord_mean = np.mean(coord_CA,axis=0)
     N = np.shape(coord_CA)[0]
-    for i in range(0,N):
-        Rg = Rg + np.sum((coord_CA[i,:] - coord_mean)**2)
-    Rg = np.sqrt(Rg/N)
-    return Rg
+    coord_CA_deviate = coord_CA - coord_mean
+    return np.sqrt(np.sum(coord_CA_deviate*coord_CA_deviate)/N)
+    
+if __name__ == "__main__":
 
-# exclude residues in the core
-df_rSASA_start = loadmat('./T4L_analysis/T4L_start_structure_sasa_data.mat')
-rSASA_start = df_rSASA_start['each_res_data'][:,1]
-
-surface_res_id = []
-core_res_id = []
-for i in range(0,len(rSASA_start)):
-    if rSASA_start[i]>0.1:
-        surface_res_id.append(i+1)
-    else:
-        core_res_id.append(i+1)
-
-# load starting and target structure
-p = PDBParser(PERMISSIVE=1)
-starting_structure = p.get_structure('starting_structure','./T4L_analysis/T4L_start_structure.pdb')
-coord_CA_start = get_coord_CA(starting_structure[0])
-
-# get respair and distance seperation
-Rg_start = get_Rg(coord_CA_start)
-L_peptide = np.shape(coord_CA_start)[0]
-res_pair_1 = []
-res_pair_2 = []
-
-for i in range(0,L_peptide):
-    for j in range(i+1,L_peptide):
-        if i+1 in surface_res_id and j+1 in surface_res_id:
-            distance_start = get_distance(coord_CA_start[i,:], coord_CA_start[j,:])
-            if distance_start > Rg_start:
-                res_pair_1.append(i+1)
-                res_pair_2.append(j+1)   
-res_pair_1 = np.array(res_pair_1)
-res_pair_2 = np.array(res_pair_2)
-
-N_restraints = 100
-index_list = np.random.choice(len(res_pair_1),size=N_restraints,replace=False)
-res_pair_random = np.zeros([N_restraints, 2],dtype='int')
-res_pair_random[:,0] = res_pair_1[index_list]
-res_pair_random[:,1] = res_pair_2[index_list]
-
-np.savetxt('./T4L_random.txt',res_pair_random,fmt='%4d')
+    arg1 = sys.argv[1]
+    
+    # exclude residues in the core
+    df_rSASA_start = loadmat('./proteins/'+ arg1 +'_start_structure_sasa_data.mat')
+    rSASA_start = df_rSASA_start['each_res_data'][:,1]
+    
+    surface_res_id = []
+    core_res_id = []
+    for i in range(0,len(rSASA_start)):
+        if rSASA_start[i]>0.1:
+            surface_res_id.append(i+1)
+        else:
+            core_res_id.append(i+1)
+    
+    # load starting and target structure
+    p = PDBParser(PERMISSIVE=1)
+    starting_structure = p.get_structure('starting_structure','./proteins/'+ arg1 + '_start_structure.pdb')
+    coord_CA_start = get_coord_CA(starting_structure[0])
+    
+    # get respair and distance seperation
+    Rg_start = get_Rg(coord_CA_start)
+    L_peptide = np.shape(coord_CA_start)[0]
+    res_pair_1 = []
+    res_pair_2 = []
+    
+    for i in range(0,L_peptide):
+        for j in range(i+1,L_peptide):
+            if i+1 in surface_res_id and j+1 in surface_res_id:
+                distance_start = get_distance(coord_CA_start[i,:], coord_CA_start[j,:])
+                if distance_start > Rg_start:
+                    res_pair_1.append(i+1)
+                    res_pair_2.append(j+1)   
+    res_pair_1 = np.array(res_pair_1)
+    res_pair_2 = np.array(res_pair_2)
+    
+    N_restraints = 100
+    index_list = np.random.choice(len(res_pair_1),size=N_restraints,replace=False)
+    res_pair_random = np.zeros([N_restraints, 2],dtype='int')
+    res_pair_random[:,0] = res_pair_1[index_list]
+    res_pair_random[:,1] = res_pair_2[index_list]
+    
+    np.savetxt('./' + arg1 + '_restraints_random.txt',res_pair_random,fmt='%4d')
