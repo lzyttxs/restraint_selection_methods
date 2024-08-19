@@ -110,8 +110,6 @@ if __name__ == "__main__":
 
     res_pair_1_sorted_filter = np.array(res_pair_1_sorted_filter)
     res_pair_2_sorted_filter = np.array(res_pair_2_sorted_filter)
-    
-    N_restraints = 5
     res_pair_select = np.zeros([N_restraints, 2],dtype='int')
     res_pair_select[:,0] = res_pair_1_sorted_filter
     res_pair_select[:,1] = res_pair_2_sorted_filter
